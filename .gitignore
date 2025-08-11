@@ -1,0 +1,6 @@
+.env
+/env
+__pycache__/
+test.json
+test2.json
+lab.py
