@@ -319,7 +319,7 @@ def reply_to_post(parent_post_id: int, message: str, subject: str = "Respuesta a
     """
     Publica una respuesta a un post existente en un foro de Moodle.
     
-    Requiere que el servicio tenga habilitada la función 'mod_forum_add_discussion_post'.
+    Requiere que el servicio tenga habilitada la función 'mod_forum_add_discussi    on_post'.
     
     Parámetros:
     - parent_post_id: ID del post al que se quiere responder

@@ -114,7 +114,7 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
                     question_embedding = IA.get_embedding(conversation['content'][0]['text'])
                     question_related_content = IA.find_similar_content(question_embedding, course_content_embedding)
 
-                    with open(r"files\system_prompts\Forum_Respond.txt", "r") as file:
+                    with open(r"files/system_prompts/Forum_Respond.txt", "r") as file:
                         system_prompt = file.read()
                         system_prompt += f"""La siguiente Informacion es la Informacion General Del Curso. Utilizala para deducir el contenido general del curso: \n{general_info}\n\n"""
 
