@@ -45,28 +45,28 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
 
     user_id = moodle.get_self_id()["userid"]
     courses = moodle.get_user_courses(user_id)
-    print("1.")
+    print("1. entro un nuevo mensaje en un foro")
 
     if any(course["id"] == course_id for course in courses):
-        print("2.")
+        print("2. El asistente si esta en el curso")
 
         conversations = moodle.get_discussion_posts(discussion_id)
         conversations = moodle.get_conversations(conversations['posts'][0], course_id)
 
         for conversation in conversations:
-            print("3.")
+            print("3. analizando conversacion...")
 
             if conversation['id_user'] != user_id:
                 teacher = False
-                print("4.")
+                print("4. El utimo mensaje no fue del asistente")
 
                 for rol in conversation["content"][-1]["user_roles"]:
                     if rol['shortname'] in ('teacher', 'editingteacher'):
                         teacher = True
 
                 if not teacher:
-                    print("5.")
-                    print("RESPONDIENDO**********\n"*5)
+                    print("5. El utimo mensaje no fue de un profesor")
+                    print("**********Analizando curso**********\n")
 
                     course_content = moodle.get_course_contents(course_id)
                     course_name = next((course["shortname"] for course in courses if course["id"] == course_id), "None")
@@ -92,7 +92,6 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
                                         course_content_embedding.append({"source": module['name'], "text": download, "embedding": None})
 
                     course_content_embedding = IA.get_embeding_list(course_content_embedding)
-                    print(course_content_embedding)
 
                     # Chat history
                     chat = []
@@ -111,6 +110,8 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
                         chat.append(interaction)
 
                     # search related content
+                    print("**********Vectorizando**********\n")
+
                     question_embedding = IA.get_embedding(conversation['content'][0]['text'])
                     question_related_content = IA.find_similar_content(question_embedding, course_content_embedding)
 
@@ -123,15 +124,24 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
                             system_prompt += f"\nFuente de la informacion (nombre del archivo): {content['source']}:\n{content['text']}"
 
                     # response
-                    # response = IA.generate_response(conversation['content'][-1]['text'], system_prompt, chat)
-                    # moodle.reply_to_post(conversation['content'][-1]['id_post'], response)
-                    # print("Respuesta enviada correctamente.")
-                    # ⬇️ ESTA ES LA CLAVE: no bloquees el loop
+                    print("**********Respondiendo**********\n")
                     await asyncio.to_thread(
                         moodle.reply_to_post,
                         conversation['content'][-1]['id_post'],
                         IA.generate_response(conversation['content'][-1]['text'], system_prompt, chat)
                     )
+                
+                else:
+                    print("**********El utimo mensaje fue de un profesor**********\n")
+            else:
+                print("**********El utimo mensaje fue del asistente**********\n")
+    else:
+        print("**********El asistente no esta en el curso**********\n")
+
+
+
+
+
 
 
 
