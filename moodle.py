@@ -337,13 +337,11 @@ def reply_to_post(parent_post_id: int, message: str, subject: str = "Respuesta a
     }
 
     response = requests.post(ENDPOINT, data=params)
-    print("LOGRADO")
     
     if response.status_code != 200:
         raise Exception(f"❌ Error al responder al post {parent_post_id}:\n{response.status_code}\n{response.text}")
 
     result = response.json()
-    print(result)
 
     if 'exception' in result:
         print(result)
