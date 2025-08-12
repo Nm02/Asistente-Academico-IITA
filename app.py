@@ -19,7 +19,6 @@ app = FastAPI()
 @app.post("/webhook")
 async def moodle_webhook_listener(request: Request):
     data = await request.json()
-    print("Nuevo evento recibido:", data)
 
     if data["eventname"] == "\\mod_forum\\event\\post_created":
         # respond_discussion(data['other']['discussionid'], int(data["courseid"]))
@@ -41,11 +40,10 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
     Esta funcion sponde SI y SOLO SI el usuario registrado con el Token esta dentro del curso, y tiene los permisos necesarios.
     """
 
-    print(f"Nuevo mensaje de la discusion: {discussion_id}\nPerteneciente al curso: {course_id}")
+    print(f"1. Nuevo mensaje de la discusion: {discussion_id}\nPerteneciente al curso: {course_id}")
 
     user_id = moodle.get_self_id()["userid"]
     courses = moodle.get_user_courses(user_id)
-    print("1. entro un nuevo mensaje en un foro")
 
     if any(course["id"] == course_id for course in courses):
         print("2. El asistente si esta en el curso")
