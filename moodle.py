@@ -401,109 +401,96 @@ def download_file(fileurl: str, file_type: str):
 
 
 
-# Testeo
-if __name__ == "__main__":
-    # Variables de entorno
-    import os
-    from dotenv import load_dotenv
+# # Testeo
+# if __name__ == "__main__":
 
+#     user_id = get_self_id()["userid"]
+#     courses = get_user_courses(user_id)
 
-    # === CONFIGURACIÓN ===
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    dotenv_path = os.path.join(current_dir, '.env')
-    load_dotenv(dotenv_path)
-
-    MOODLE_URL = os.getenv("MOODLE_URL") 
-    TOKEN = os.getenv("TOKEN")
-    ENDPOINT = f"{MOODLE_URL}/webservice/rest/server.php"
-
-    user_id = get_self_id(TOKEN, ENDPOINT)["userid"]
-    courses = get_user_courses(user_id)
-
-    for course in courses:
-        forums = get_course_forums(course["id"])
+#     for course in courses:
+#         forums = get_course_forums(course["id"])
         
-        print("\n\n","*"*50)
-        print(f"curso: {course['fullname']}\n")
+#         print("\n\n","*"*50)
+#         print(f"curso: {course['fullname']}\n")
 
-        for forum in forums:
-            discussions = get_forum_content(forum['id'])
+#         for forum in forums:
+#             discussions = get_forum_content(forum['id'])
 
-            for discussion in discussions['discussions']:
-                print(f"-[{discussion['discussion']}] {discussion['name']}\n")
-                posts = get_discussion_posts(discussion['discussion'])
+#             for discussion in discussions['discussions']:
+#                 print(f"-[{discussion['discussion']}] {discussion['name']}\n")
+#                 posts = get_discussion_posts(discussion['discussion'])
                 
             
-                posts = get_conversations(posts['posts'][0], course["id"])
+#                 posts = get_conversations(posts['posts'][0], course["id"])
 
 
-                for post in posts:
-                    if post['id_user'] != user_id:
-                        teacher = False
+#                 for post in posts:
+#                     if post['id_user'] != user_id:
+#                         teacher = False
 
-                        for rol in post["content"][-1]["user_roles"]:
-                            if rol['shortname'] in ('teacher', 'editingteacher'):
-                                teacher = True
+#                         for rol in post["content"][-1]["user_roles"]:
+#                             if rol['shortname'] in ('teacher', 'editingteacher'):
+#                                 teacher = True
 
-                        if not teacher:
-                            import IA
+#                         if not teacher:
+#                             import IA
 
-                            course_content = get_course_contents(course["id"])
-                            course_content_embedding = []
-                            general_info = f"Nombre del Curso: {course['fullname']}\n"
+#                             course_content = get_course_contents(course["id"])
+#                             course_content_embedding = []
+#                             general_info = f"Nombre del Curso: {course['fullname']}\n"
 
-                            # Get course content embeding
-                            for section in course_content:
-                                print(f"\n📚 Sección: {section['name']}")
-                                for module in section.get("modules", []):
-                                    print(f"  📄 Recurso: {module['name']} - tipo: {module['modname']}")
-                                    for content in module.get("contents", []):
+#                             # Get course content embeding
+#                             for section in course_content:
+#                                 print(f"\n📚 Sección: {section['name']}")
+#                                 for module in section.get("modules", []):
+#                                     print(f"  📄 Recurso: {module['name']} - tipo: {module['modname']}")
+#                                     for content in module.get("contents", []):
 
-                                        if content["mimetype"] == "application/pdf":
-                                            download = download_file(content["fileurl"], content["mimetype"])
+#                                         if content["mimetype"] == "application/pdf":
+#                                             download = download_file(content["fileurl"], content["mimetype"])
                                             
 
-                                            if section['name'].lower() == "informacion general":
-                                                general_info += f"\nFuente de la informacion (nombre del archivo): {module['name']}\n{download}\n"
+#                                             if section['name'].lower() == "informacion general":
+#                                                 general_info += f"\nFuente de la informacion (nombre del archivo): {module['name']}\n{download}\n"
 
-                                            else:
-                                                # embedding = IA.get_embedding(download)
-                                                course_content_embedding.append({"source": module['name'], "text": download, "embedding": None})
+#                                             else:
+#                                                 # embedding = IA.get_embedding(download)
+#                                                 course_content_embedding.append({"source": module['name'], "text": download, "embedding": None})
 
-                            course_content_embedding = IA.get_embeding_list(course_content_embedding)
+#                             course_content_embedding = IA.get_embeding_list(course_content_embedding)
 
-                            # Chat history
-                            chat = []
-                            for message in post["content"]:
-                                interaction = {}
+#                             # Chat history
+#                             chat = []
+#                             for message in post["content"]:
+#                                 interaction = {}
 
-                                if 'teacher' in message['user_roles'] or 'editingteacher' in message['user_roles']:
-                                    interaction['role'] = 'assistant'
-                                    message_user = f"mensaje del profesor {message['user_name']:}"
+#                                 if 'teacher' in message['user_roles'] or 'editingteacher' in message['user_roles']:
+#                                     interaction['role'] = 'assistant'
+#                                     message_user = f"mensaje del profesor {message['user_name']:}"
 
-                                else:
-                                    interaction['role'] = 'user'
-                                    message_user = f"mensaje del alumno {message['user_name']}:"
+#                                 else:
+#                                     interaction['role'] = 'user'
+#                                     message_user = f"mensaje del alumno {message['user_name']}:"
                                 
-                                interaction["content"] = f"{message_user}{message['text']}" 
-                                chat.append(interaction)
+#                                 interaction["content"] = f"{message_user}{message['text']}" 
+#                                 chat.append(interaction)
 
 
-                            # search related content
-                            question_embedding = IA.get_embedding(post['content'][0]['text'])
-                            question_related_content = IA.find_similar_content(question_embedding, course_content_embedding)
+#                             # search related content
+#                             question_embedding = IA.get_embedding(post['content'][0]['text'])
+#                             question_related_content = IA.find_similar_content(question_embedding, course_content_embedding)
 
-                            with open(r"files\system_prompts\Forum_Respond.txt", "r") as file:
-                                system_prompt = file.read()
-                                system_prompt += f"""La siguiente Informacion es la Informacion General Del Curso. Utilizala para deducir el contenido general del curso: \n{general_info}\n\n"""
+#                             with open(r"files\system_prompts\Forum_Respond.txt", "r") as file:
+#                                 system_prompt = file.read()
+#                                 system_prompt += f"""La siguiente Informacion es la Informacion General Del Curso. Utilizala para deducir el contenido general del curso: \n{general_info}\n\n"""
 
-                                system_prompt += "La siguiente Informacion es el Contenido Del Curso que considermaos util para esta pregunta, puedes o no utilizarlo:\n"
-                                for content in question_related_content:
-                                    system_prompt += f"\nFuente de la informacion (nombre del archivo): {content['source']}:\n{content['text']}"
+#                                 system_prompt += "La siguiente Informacion es el Contenido Del Curso que considermaos util para esta pregunta, puedes o no utilizarlo:\n"
+#                                 for content in question_related_content:
+#                                     system_prompt += f"\nFuente de la informacion (nombre del archivo): {content['source']}:\n{content['text']}"
 
-                            # response
-                            response = IA.generate_response(post['content'][-1]['text'], system_prompt, chat)
-                            reply_to_post(post['content'][-1]['id_post'], response)
+#                             # response
+#                             response = IA.generate_response(post['content'][-1]['text'], system_prompt, chat)
+#                             reply_to_post(post['content'][-1]['id_post'], response)
 
 
 
