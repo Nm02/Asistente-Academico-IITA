@@ -3,10 +3,10 @@ from fastapi import FastAPI, Request
 import uvicorn
 
 # Libreria para moodle
-import moodle
+import tools.moodle as moodle
 
 # IA
-import IA
+import tools.IA as IA
 
 # para evitar deadlock de webhooks
 import asyncio
@@ -137,7 +137,7 @@ async def respond_discussion(discussion_id: int, course_id: int = None):
         print("**********El asistente no esta en el curso**********\n")
 
 
-
+    
 
 
 

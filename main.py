@@ -3,7 +3,7 @@ import requests
 import os
 from dotenv import load_dotenv
 
-import moodle
+import tools.moodle as moodle
 
 # === CONFIGURACIÓN ===
 current_dir = os.path.dirname(os.path.abspath(__file__))

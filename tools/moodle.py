@@ -192,7 +192,7 @@ def organize_posts_by_hierarchy(response: dict) -> dict:
 
 def get_conversations(post: dict, course_id: str = None) -> list[dict]:
     """
-    Obtiene las conversaciones a modo de diccionario, cargando los textos de los mensajes, asociandolos a los post pdres y registrando quien envio cada mensaje (nombre de usuario, rol en el curso, etc.)\n
+    Obtiene las conversaciones a modo de diccionario, cargando los textos de los mensajes, asociandolos a los post padres y registrando quien envio cada mensaje (nombre de usuario, rol en el curso, etc.)\n
     estuctura del diccionario:
         -discussion     -> id del la discusion
         -id_user        -> usuario que envio la ultima respuesta de la conversacion
@@ -319,7 +319,7 @@ def reply_to_post(parent_post_id: int, message: str, subject: str = "Respuesta a
     """
     Publica una respuesta a un post existente en un foro de Moodle.
     
-    Requiere que el servicio tenga habilitada la función 'mod_forum_add_discussi    on_post'.
+    Requiere que el servicio tenga habilitada la función 'mod_forum_add_discussion_post'.
     
     Parámetros:
     - parent_post_id: ID del post al que se quiere responder
