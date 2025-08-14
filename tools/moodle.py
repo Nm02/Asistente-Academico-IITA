@@ -401,7 +401,6 @@ def download_file(fileurl: str, file_type: str):
 
 # # Testeo
 # if __name__ == "__main__":
-
 #     user_id = get_self_id()["userid"]
 #     courses = get_user_courses(user_id)
 
