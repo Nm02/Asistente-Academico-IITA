@@ -48,6 +48,63 @@ def generate_response(prompt: str, system_prompt: str = "", chat_history: list[d
         print("Error:", response.status_code, response.text)
         return None
     
+def get_tag(prompt: str, tags: list[dict], system_prompt: str = "", chat_history: list[dict] = [], model: str = "gpt-4.1") -> list[str]:
+    """
+    Función para realizar solicitud con contexto y asignar tags desde una lista dada.
+
+    Parámetros:
+        prompt (str): El mensaje del usuario.
+        tags (list[dict]): Lista de diccionarios con formato {"name": nombre_tag, "description": descripcion_tag}.
+        system_prompt (str): Mensaje del sistema para el contexto.
+        chat_history (list[dict]): Historial de mensajes previos.
+        model (str): Modelo de IA a utilizar.
+
+    Retorna:
+        list[str]: Lista de nombres de tags asignados.
+    """
+
+    url = API_URL
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}"
+    }
+
+    # Crear un mensaje con la lista de tags formateada
+    tags_description = "\n".join([f"- {tag['name']}: {tag['description']}" for tag in tags])
+    system_prompt += f"\n\nA continuación, se te proporciona una lista de tags disponibles:\n{tags_description}\n\nTu tarea es asignar los tags más relevantes al mensaje del usuario, devolviendo únicamente los nombres de los tags en formato de lista JSON."
+
+    messages = [{"role": "system", "content": system_prompt}]   # Cargar system prompt
+    messages.extend(chat_history)                               # Cargar mensajes previos
+    messages.append({"role": "user", "content": prompt})        # Cargar último mensaje (el que debe ser respondido)
+
+    # Cargar el contenido de la conversación al body
+    body = {
+        "model": model,
+        "messages": messages
+    }
+
+    # Realizamos la solicitud y guardamos una respuesta
+    response = requests.post(url, headers=headers, json=body)
+
+    if response.status_code == 200:
+        # Extraemos el texto de la respuesta y lo devolvemos como lista de tags
+        data = response.json()
+        reply = data["choices"][0]["message"]["content"]
+        try:
+            assigned_tags = eval(reply)  # Convertir la respuesta en lista
+            if isinstance(assigned_tags, list) and all(isinstance(tag, str) for tag in assigned_tags):
+                return assigned_tags
+            else:
+                print("Error: Respuesta no tiene el formato esperado.")
+                return []
+        except Exception as e:
+            print("Error al procesar la respuesta:", e)
+            return []
+    else:
+        # En caso de que la IA devuelva un error, lo mostramos
+        print("Error:", response.status_code, response.text)
+        return []
+
 
 def get_embedding(text: str, model: str = "text-embedding-3-small") -> list:
     """
@@ -149,7 +206,8 @@ def get_embeding_list(records, model: str = "text-embedding-3-small", skip_exist
 
 def find_similar_content(query_embedding: list[float], documents: list[dict], top_n: int = 1) -> list[dict]:
     """
-    Encuentra los `top_n` documentos más similares a un embedding de consulta, utilizando FAISS.
+    Encuentra los `top_n` documentos más similares a un embedding de consulta, utilizando FAISS
+    con **similitud coseno** (producto interno sobre vectores normalizados).
 
     Parámetros:
         query_embedding (list[float]): Vector de embedding de la consulta del usuario.
@@ -162,38 +220,50 @@ def find_similar_content(query_embedding: list[float], documents: list[dict], to
         top_n (int): Cantidad de documentos más similares a retornar.
 
     Retorna:
-        list[dict]: Lista de los top_n documentos más relevantes con su score de similitud.
+        list[dict]: Lista de los top_n documentos más relevantes con su score de similitud (coseno).
     """
+    if not documents:
+        return []
 
     # Paso 1: Convertir embeddings de los documentos a matriz NumPy float32
     embedding_dim = len(documents[0]["embedding"])
-    doc_vectors = np.array([doc["embedding"] for doc in documents]).astype("float32")
+    doc_vectors = np.array([doc["embedding"] for doc in documents], dtype="float32")
 
-    # Paso 2: Crear índice FAISS (basado en distancia euclidiana)
-    index = faiss.IndexFlatL2(embedding_dim)
+    # Validación simple de dimensiones (opcional)
+    if doc_vectors.shape[1] != embedding_dim or len(query_embedding) != embedding_dim:
+        raise ValueError("Dimensión de embeddings inconsistente entre documentos y/o query.")
 
-    # Paso 3: Agregar los vectores al índice
+    # Paso 2: Normalizar documentos (L2 = 1) para que IP == coseno
+    faiss.normalize_L2(doc_vectors)
+
+    # Paso 3: Crear índice FAISS basado en producto interno (equivale a coseno con vectores normalizados)
+    index = faiss.IndexFlatIP(embedding_dim)
+
+    # Paso 4: Agregar los vectores al índice
     index.add(doc_vectors)
 
-    # Paso 4: Convertir el embedding de la query a matriz 2D (1 x embedding_dim)
-    query_vector = np.array(query_embedding).astype("float32").reshape(1, -1)
+    # Paso 5: Convertir y normalizar el embedding de la query a matriz 2D (1 x embedding_dim)
+    query_vector = np.array(query_embedding, dtype="float32").reshape(1, -1)
+    faiss.normalize_L2(query_vector)
 
-    # Paso 5: Buscar los documentos más similares
-    distances, indices = index.search(query_vector, top_n)
+    # Asegurar límites de top_n
+    top_n = max(1, min(top_n, len(documents)))
 
-    # Paso 6: Devolver los resultados ordenados con sus scores
+    # Paso 6: Buscar los documentos más similares (scores en [-1, 1], mayor = mejor)
+    scores, indices = index.search(query_vector, top_n)
+
+    # Paso 7: Devolver los resultados ordenados con sus scores
     results = []
-    for i, idx in enumerate(indices[0]):
+    for i, (idx, score) in enumerate(zip(indices[0], scores[0]), start=1):
         doc = documents[idx]
         results.append({
-            "rank": i + 1,
-            "similarity_score": 1 / (1 + distances[0][i]),  # transformar distancia en score (opcional)
+            "rank": i,
+            "similarity_score": float(score),        # coseno (más alto = mejor)
             "source": doc.get("source", "desconocido"),
             "text": doc["text"]
         })
 
     return results
-
 
 
 

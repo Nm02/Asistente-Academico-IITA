@@ -374,6 +374,55 @@ def get_course_contents(course_id: int) -> list[dict]:
     return response.json()
 
 
+def get_course_assignaments(course_id: int) -> list[dict]:
+    """
+    Obtiene todas las tareas (assignments) de un curso específico en Moodle, incluyendo los archivos cargados por el docente.
+    Esta función utiliza la función web service 'mod_assign_get_assignments' de Moodle para recuperar las tareas asociadas a un curso.
+    Args:
+        course_id (int): ID del curso del cual se desean obtener las tareas.
+    Returns:
+        list[dict]: Una lista de diccionarios, donde cada diccionario representa una tarea (assignment) del curso. 
+        Cada diccionario contiene información detallada sobre la tarea, como:
+            - id (int): ID único de la tarea.
+            - name (str): Nombre de la tarea.
+            - duedate (int): Fecha de entrega en formato timestamp (si está configurada).
+            - allowsubmissionsfromdate (int): Fecha desde la cual se permiten entregas en formato timestamp.
+            - intro (str): Descripción o introducción de la tarea.
+            - introformat (int): Formato de la descripción (por ejemplo, HTML).
+            - files (list[dict]): Lista de archivos asociados a la tarea, si los hay. Cada archivo incluye detalles como:
+                - filename (str): Nombre del archivo.
+                - filepath (str): Ruta del archivo.
+                - filesize (int): Tamaño del archivo en bytes.
+                - fileurl (str): URL para descargar el archivo.
+                - mimetype (str): Tipo MIME del archivo.
+    Raises:
+        requests.exceptions.HTTPError: Si la solicitud HTTP al endpoint falla.
+        KeyError: Si la respuesta no contiene los datos esperados.
+    Nota:
+        Es necesario que el token proporcionado tenga permisos para acceder a la función 'mod_assign_get_assignments'.
+    """
+
+    params = {
+        "wstoken": TOKEN,
+        "wsfunction": "mod_assign_get_assignments",
+        "moodlewsrestformat": "json",
+        "courseids[0]": course_id
+    }
+
+    response = requests.get(ENDPOINT, params=params)
+    response.raise_for_status()
+
+    data = response.json()
+
+    assignments = []
+
+    for course in data.get("courses", []):
+        for assign in course.get("assignments", []):
+            assignments.append(assign)
+
+    return assignments
+
+
 def download_file(fileurl: str, file_type: str):
     """
     Descarga un archivo del moodle
